@@ -1,0 +1,185 @@
+.hero-container {
+  position: relative;
+  width: 100%;
+  background: var(--color-midnight);
+  color: var(--color-cool-white);
+  font-family: var(--font-body);
+}
+
+/* Fixed, hidden via a motion-value-driven display style (see
+   pastHeroDisplay in horizon-hero-section.tsx) rather than position:sticky.
+   Sticky's stuck range is capped at containerHeight - elementHeight, which
+   falls short of covering a multi-viewport-tall container like this one —
+   it released early, leaving a dead flat-background stretch before the next
+   page section. Fixed positioning has no such range limit; the JS toggle
+   covers the bleed-into-next-section case that fixed alone doesn't handle. */
+.hero-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  display: block;
+}
+
+/* Fixed, same reasoning and same display toggle as .hero-canvas above: this
+   used to be position:sticky with height:0, which never released from being
+   stuck even at scroll positions well past the hero's own end (a
+   zero-height sticky box doesn't hit the "ran out of container" release
+   condition the way a normal-sized one does), and its opacity never reset
+   back to 0 once scrolled past the hero either — so a still-stuck,
+   still-opaque full-viewport black rectangle at z-index:5 was painting over
+   every section below the hero indefinitely. */
+.hero-blackout {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 5;
+  pointer-events: none;
+  will-change: opacity;
+  background: var(--color-midnight);
+}
+
+/* Main hero content (first viewport) */
+.hero-content {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 1.5rem;
+  pointer-events: none;
+}
+
+.hero-content::before {
+  content: "";
+  position: absolute;
+  inset: -8% -6%;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(10, 11, 11, 0.6) 0%,
+    rgba(10, 11, 11, 0.25) 50%,
+    transparent 75%
+  );
+  pointer-events: none;
+}
+
+.hero-overline {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5em;
+  color: var(--color-cool-white);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  margin-bottom: 1.25rem;
+}
+
+.hero-headline {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: clamp(2.5rem, 7vw, 6rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+  max-width: 20ch;
+  margin: 0;
+  text-shadow: 0 0 70px rgba(222, 31, 38, 0.45);
+}
+
+.hero-cta {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  pointer-events: auto;
+}
+
+@media (min-width: 640px) {
+  .hero-cta {
+    flex-direction: row;
+  }
+}
+
+.scroll-hint {
+  margin-top: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.scroll-hint-text {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-cool-grey);
+}
+
+.scroll-hint-line {
+  width: 1px;
+  height: 2.5rem;
+  background: var(--color-cool-grey);
+  opacity: 0.6;
+  animation: scroll-hint-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes scroll-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Scroll-driven sections beneath the first viewport */
+.scroll-sections {
+  position: relative;
+  z-index: 10;
+}
+
+.content-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 1.5rem;
+  pointer-events: none;
+}
+
+.beat-eyebrow {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--color-crimson);
+}
+
+.beat-text {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: clamp(2.5rem, 8vw, 5.5rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  margin: 0;
+  text-shadow: 0 0 70px rgba(222, 31, 38, 0.45);
+}
+
+.beat-subtext {
+  margin: 1.5rem 0 0;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  line-height: 1.5;
+  color: var(--color-cool-grey);
+}
+

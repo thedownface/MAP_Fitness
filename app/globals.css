@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@theme {
+  /* MAP brand colors — from MAP Brand Guidelines 2026 */
+  --color-midnight: #0a0b0b;
+  --color-midnight-soft: #131414;
+  --color-crimson: #de1f26;
+  --color-crimson-dim: #8f1418;
+  --color-cool-white: #e9f0f5;
+  --color-cool-grey: #dcdcdc;
+
+  /* Fonts — stand-ins for the brand book's Restore Black / Forma DJR Micro
+     (licensed foundry fonts): Archivo Black + Inter */
+  --font-display: var(--font-archivo), "Arial Narrow", sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, sans-serif;
+
+  /* Sharp-by-default radii; pill reserved for "range" accents */
+  --radius-none: 0px;
+  --radius-sharp: 2px;
+  --radius-pill: 999px;
+
+  /* Section rhythm */
+  --spacing-section-y: 8rem;
+  --spacing-section-y-sm: 4rem;
+
+  /* Easing tokens used across GSAP/CSS transitions */
+  --ease-map: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@layer base {
+  * {
+    scrollbar-color: var(--color-crimson) var(--color-midnight);
+  }
+
+  html {
+    background: var(--color-midnight);
+  }
+
+  body {
+    background: var(--color-midnight);
+    color: var(--color-cool-white);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--color-crimson);
+    color: var(--color-midnight);
+  }
+
+  @media (pointer: fine) {
+    body {
+      cursor: none;
+    }
+
+    a,
+    button {
+      cursor: none;
+    }
+  }
+}
+
+@layer utilities {
+  .text-stroke-crimson {
+    -webkit-text-stroke: 1px var(--color-crimson);
+  }
+
+  .duotone {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .duotone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 11, 11, 0.15) 0%,
+      rgba(10, 11, 11, 0.55) 65%,
+      rgba(10, 11, 11, 0.85) 100%
+    );
+    pointer-events: none;
+  }
+
+  .duotone img {
+    filter: grayscale(0.55) contrast(1.15) brightness(0.85);
+  }
+
+  .map-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  .animate-marquee {
+    animation: marquee 22s linear infinite;
+  }
+
+  .animate-marquee-reverse {
+    animation: marquee-reverse 22s linear infinite;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes marquee-reverse {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
