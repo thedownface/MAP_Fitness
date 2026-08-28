@@ -3,41 +3,40 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { MapWordmarkSVG } from "@/components/brand/MapWordmarkSVG";
 
-const SESSION_KEY = "map-preloader-shown";
+const LOGO_MASK_URL = "/images/map-logo-mark.png";
+const FILL_DURATION = 5;
 
 export function Preloader() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
-  const wordmarkRef = useRef<SVGSVGElement>(null);
+  const fillRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (sessionStorage.getItem(SESSION_KEY)) return;
-    // One-shot imperative reveal gated on sessionStorage — not a
-    // subscription to external state, so useSyncExternalStore doesn't
-    // apply; there's no render-time-safe way to read sessionStorage.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVisible(true);
-    sessionStorage.setItem(SESSION_KEY, "1");
+    // The browser's own scroll restoration would otherwise reopen a reload
+    // at whatever position the last visit left off at — this always shows
+    // the page from the hero, every reload, not wherever the scrollbar was.
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    window.scrollTo(0, 0);
   }, []);
 
   useEffect(() => {
-    if (!visible || reducedMotion || !containerRef.current || !wordmarkRef.current) return;
+    if (!visible || reducedMotion || !containerRef.current || !fillRef.current) return;
     const container = containerRef.current;
-    const wordmark = wordmarkRef.current;
+    const fill = fillRef.current;
 
-    const paths = container.querySelectorAll(".map-draw");
     // Only the home page's WebGL hero needs to be waited on — everywhere
     // else there's nothing to hold for, so behave exactly like before.
     const hasHero = !!document.querySelector(".hero-canvas");
-    let drawDone = false;
+    let fillDone = false;
     let heroReady = !hasHero;
     let settled = false;
 
     const finish = () => {
-      if (settled || !drawDone || !heroReady) return;
+      if (settled || !fillDone || !heroReady) return;
       settled = true;
       gsap.to(container, {
         opacity: 0,
@@ -59,30 +58,21 @@ export function Preloader() {
     const maxWait = window.setTimeout(() => {
       heroReady = true;
       finish();
-    }, 4000);
+    }, 6000);
 
-    // Draw on white, then settle to the brand red — reads as the mark
-    // "charging up" while the 3D scene behind it spins up, rather than
-    // drawing on already-red (which reads as instant/static).
+    // Rise the brand red up through the logo mark from a white base,
+    // reading as the mark "filling up" while the 3D scene behind it
+    // spins up, rather than appearing already-red (instant/static).
     const tl = gsap.timeline({
       onComplete: () => {
-        drawDone = true;
+        fillDone = true;
         finish();
       },
     });
-    tl.to(paths, {
-      strokeDashoffset: 0,
-      duration: 1,
-      stagger: 0.15,
-      ease: "power2.inOut",
-    }).to(
-      wordmark,
-      {
-        color: "#de1f26",
-        duration: 0.6,
-        ease: "power2.inOut",
-      },
-      "-=0.25",
+    tl.fromTo(
+      fill,
+      { clipPath: "inset(100% 0% 0% 0%)" },
+      { clipPath: "inset(0% 0% 0% 0%)", duration: FILL_DURATION, ease: "power1.inOut" },
     );
 
     return () => {
@@ -104,7 +94,24 @@ export function Preloader() {
       className="fixed inset-0 z-[100] flex items-center justify-center bg-midnight"
       aria-hidden
     >
-      <MapWordmarkSVG ref={wordmarkRef} className="h-16 w-auto text-cool-white sm:h-20" animated strokeWidth={20} />
+      <div
+        className="relative h-40 aspect-[1856/2304] sm:h-56"
+        style={{
+          maskImage: `url(${LOGO_MASK_URL})`,
+          WebkitMaskImage: `url(${LOGO_MASK_URL})`,
+          maskRepeat: "no-repeat",
+          WebkitMaskRepeat: "no-repeat",
+          maskSize: "contain",
+          WebkitMaskSize: "contain",
+          maskPosition: "center",
+          WebkitMaskPosition: "center",
+        }}
+      >
+        {/* Base coat: brand white, fully visible until the fill rises over it. */}
+        <div className="absolute inset-0 bg-cool-white" />
+        {/* Fill: brand red, clipped from the bottom and animated to full height. */}
+        <div ref={fillRef} className="absolute inset-0 bg-crimson" style={{ clipPath: "inset(100% 0% 0% 0%)" }} />
+      </div>
     </div>
   );
 }

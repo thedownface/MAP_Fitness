@@ -13,7 +13,13 @@ const STRIDE = 1.0; // one stride cycle per second — kept fast and separate fr
 const DURATION = 4.0; // ...the loop clock, so the caption below doesn't replay every stride
 
 // Procedural sprint gait (sinusoidal, not hand-keyed poses) — legs alternate
-// a half-cycle apart, arms drive opposite the same-side leg.
+// a half-cycle apart, arms drive opposite the same-side leg. The arm terms
+// previously carried the same +Math.PI split as the *opposite* leg pair
+// (th used `phase`, but u used `phase + PI` instead of the plain `phase` that
+// actually opposes it), which put each arm forward at the same instant as
+// its same-side leg's own forward knee-drive — same-side limbs swinging the
+// same direction reads as reaching, not running. Swapping which of u/u2
+// (and f/f2) carries the +Math.PI fixes the pairing to genuinely alternate.
 function runningPose(phase: number): Pose {
   return {
     t: -92 + 3 * Math.sin(phase * 2),
@@ -21,10 +27,10 @@ function runningPose(phase: number): Pose {
     sh: 95 - 55 * Math.sin(phase + 0.7),
     th2: 45 + 85 * Math.sin(phase + Math.PI),
     sh2: 95 - 55 * Math.sin(phase + Math.PI + 0.7),
-    u: 95 - 55 * Math.sin(phase + Math.PI),
-    f: 100 - 45 * Math.sin(phase + Math.PI + 0.5),
-    u2: 95 - 55 * Math.sin(phase),
-    f2: 100 - 45 * Math.sin(phase + 0.5),
+    u: 95 - 55 * Math.sin(phase),
+    f: 100 - 45 * Math.sin(phase + 0.5),
+    u2: 95 - 55 * Math.sin(phase + Math.PI),
+    f2: 100 - 45 * Math.sin(phase + Math.PI + 0.5),
   };
 }
 

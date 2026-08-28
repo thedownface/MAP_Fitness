@@ -11,7 +11,13 @@ const BG = "#131414"; // midnight-soft
 const ACCENT = "#de1f26"; // crimson
 
 const P = {
-  lieBack: { t: 172, th: 6, sh: 8, th2: 9, sh2: 11, u: 150, f: 165, u2: 155, f2: 170 },
+  // Arms-overhead reach used to run straight out from the shoulder (u/f both
+  // ~150-165°, nearly collinear with the torso) far enough that the hand
+  // landed at local x -198 — past the left edge of the frame at this scene's
+  // translate/scale, taking the head and forearm off-canvas with it. Angling
+  // the elbow more (u 130, f 130) keeps the "reaching overhead" line but
+  // pulls the hand back to roughly -168, inside the visible canvas.
+  lieBack: { t: 164, th: 6, sh: 8, th2: 9, sh2: 11, u: 115, f: 115, u2: 120, f2: 120 },
   midCurl: { t: 140, th: 4, sh: 4, th2: 6, sh2: 6, u: 60, f: 40, u2: 65, f2: 45 },
   seatedFold: { t: -68, th: 2, sh: 0, th2: 4, sh2: 2, u: 8, f: -12, u2: 12, f2: -8 },
 } satisfies Record<string, Pose>;

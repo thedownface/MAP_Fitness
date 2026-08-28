@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Component as HeroSection } from "@/components/ui/horizon-hero-section";
+import { EquipmentHeroSection } from "@/components/ui/equipment-hero-section";
 import { SectionTag } from "@/components/ui/SectionTag";
 import { DoubleRuleDivider } from "@/components/ui/DoubleRuleDivider";
 import { FeatureGrid } from "@/components/ui/FeatureGrid";
@@ -8,7 +8,6 @@ import { Marquee } from "@/components/ui/Marquee";
 import { CTASection } from "@/components/ui/CTASection";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
-import { ScrollDiscoverSection } from "@/components/sections/ScrollDiscoverSection";
 import { StrengthFlexibilitySection } from "@/components/sections/StrengthFlexibilitySection";
 import { FinalPeakSection } from "@/components/sections/FinalPeakSection";
 import {
@@ -25,9 +24,7 @@ import {
 export default function HomePage() {
   return (
     <>
-      <HeroSection />
-
-      <ScrollDiscoverSection />
+      <EquipmentHeroSection />
 
       <StrengthFlexibilitySection />
 

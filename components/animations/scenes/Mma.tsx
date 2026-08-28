@@ -11,10 +11,16 @@ const BG = "#131414"; // midnight-soft
 const ACCENT = "#de1f26"; // crimson
 
 const STANCE = { t: -84, th: 55, sh: 98, th2: 112, sh2: 84 };
+// Both fists live near the chin at rest (elbow tucked down near the ribs,
+// forearm folded back up) — u/f were previously already extended even at
+// "guard", so the jab/cross barely read as punches against it. Extending one
+// arm out to the target from this tucked base is what makes the strike land
+// as a strike instead of a permanent forward reach.
+const TUCKED = { u: 110, f: -70, u2: 100, f2: -55 };
 const P = {
-  guard: { ...STANCE, u: -12, f: 40, u2: -28, f2: 52 },
-  jab: { ...STANCE, u: 6, f: 6, u2: -32, f2: 58 },
-  cross: { ...STANCE, u: -22, f: 50, u2: 4, f2: 8 },
+  guard: { ...STANCE, ...TUCKED },
+  jab: { ...STANCE, u: 6, f: 6, u2: TUCKED.u2, f2: TUCKED.f2 },
+  cross: { ...STANCE, u: TUCKED.u, f: TUCKED.f, u2: 6, f2: 6 },
 } satisfies Record<string, Pose>;
 
 // Jab, jab, cross combo, resetting to guard between each — first/last pose match for a seamless loop.

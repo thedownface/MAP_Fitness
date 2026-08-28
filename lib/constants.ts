@@ -312,10 +312,10 @@ export const HYVE_UPGRADE = [
 
 export const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "About", href: "/about" },
-  { label: "Programs", href: "/programs" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Contact", href: "/contact" },
+  { label: "The Philosophy", href: "/about" },
+  { label: "The Path", href: "/programs" },
+  { label: "The Commitment", href: "/pricing" },
+  { label: "Begin Your Story", href: "/contact" },
 ] as const;
 
 export function formatINR(amount: number) {

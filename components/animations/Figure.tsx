@@ -10,7 +10,7 @@ export function Figure({ s, fill, bg }: { s: Skeleton; fill: string; bg: string 
       <polygon points={limb(s.elbow2, s.hand2, 19, 13)} {...far} />
       <polygon points={limb(s.hip, s.knee2, 30, 22)} {...far} />
       <polygon points={limb(s.knee2, s.foot2, 21, 12)} {...far} />
-      <polygon points={limb(s.neck, s.head, 26, 22)} fill={fill} />
+      <polygon points={limb(s.neck, s.head, 40, 24)} fill={fill} />
       <polygon points={limb(s.shoulder, s.hip, 50, 36)} {...near} />
       <polygon points={limb(s.hip, s.knee, 32, 23)} {...near} />
       <polygon points={limb(s.knee, s.foot, 22, 12)} {...near} />

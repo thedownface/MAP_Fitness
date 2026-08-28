@@ -1,0 +1,286 @@
+.hero-container {
+  position: relative;
+  width: 100%;
+  background: var(--color-midnight);
+  color: var(--color-cool-white);
+  font-family: var(--font-body);
+}
+
+/* Pure scroll distance for the frame-scrub — no content of its own.
+   .hero-content above is a single 100vh viewport; without this, the
+   container's natural height is exactly one viewport, leaving zero scroll
+   range for useScroll's ["start start", "end end"] progress to move
+   across, so all 240 frames would scrub within ~0px of scroll instead of
+   over a deliberate, readable distance.
+   360vh (not 400vh) — the BEATS enter/leave fractions and blackoutOpacity
+   range in equipment-hero-section.tsx are tuned against this number so beat
+   3's fade-out and the blackout fade run back-to-back with no dead scroll
+   between "last beat gone" and "next section visible". Changing this without
+   rescaling those fractions reopens that gap. */
+.hero-scroll-spacer {
+  height: 360vh;
+  pointer-events: none;
+}
+
+/* Fixed, hidden via a motion-value-driven display style (pastHeroDisplay in
+   equipment-hero-section.tsx) rather than position:sticky — see the
+   identical reasoning in horizon-hero-section.css, which this file mirrors:
+   sticky's stuck range falls short on a multi-viewport-tall container, and
+   fixed + a JS display toggle covers the bleed-into-next-section case that
+   fixed alone doesn't handle. */
+.hero-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  display: block;
+}
+
+/* Confines the athlete frame-sequence to a right-hand wedge on desktop —
+   text-side (.hero-content, the beats' align-left copy) reads over the
+   plain --color-midnight backdrop this leaves exposed instead of a
+   full-bleed image. The box itself (left/width) is a plain rectangle sized
+   to comfortably contain the diagonal cut below; clip-path does the actual
+   slanting, so the two always share one boundary instead of drifting apart
+   at different viewport heights. Sized in JS (equipment-hero-section.tsx
+   reads the canvas's own rendered box via getBoundingClientRect, not
+   window.innerWidth) so the drawing buffer — and therefore the cover-fit
+   crop — actually matches this box instead of being stretched into it.
+   Mobile has no spare width for a side-by-side split, so the canvas stays
+   full-bleed and centered there (see ANCHOR_MOBILE), no clip-path. */
+@media (min-width: 769px) {
+  .hero-canvas {
+    left: 30vw;
+    width: 70vw;
+    /* Diagonal edge: 62vw at the top of the viewport, 35vw at the bottom,
+       re-expressed as a fraction of this box's own 70vw width:
+       (62-30)/70 and (35-30)/70. */
+    clip-path: polygon(45.7% 0%, 100% 0%, 100% 100%, 7.14% 100%);
+  }
+}
+
+.hero-blackout {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 5;
+  pointer-events: none;
+  will-change: opacity;
+  background: var(--color-midnight);
+}
+
+/* Royal Pop-style pinned text beats: fixed full-viewport, opacity-windowed
+   by scroll progress (see useBeatMotion), side-aligned with a directional
+   vignette behind the text so it stays legible over whatever frame is
+   currently painted underneath, regardless of that frame's own brightness. */
+.hero-beat {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.hero-beat::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 58vw;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero-beat.align-left {
+  padding-left: 6vw;
+  padding-right: 68vw;
+}
+.hero-beat.align-left::before {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    rgba(10, 11, 11, 0.85) 0%,
+    rgba(10, 11, 11, 0.65) 40%,
+    rgba(10, 11, 11, 0.2) 78%,
+    rgba(10, 11, 11, 0) 100%
+  );
+}
+
+/* Sized to sit close to the diagonal without crossing it: this beat's copy
+   is vertically centered (.hero-beat's align-items: center), so it never
+   actually reaches the viewport's bottom 20% or so, where the diagonal is
+   at its narrowest (35vw — see .hero-canvas's clip-path). 30vw (+ the 6vw
+   left padding above) lands the column's right edge at 36vw, clear of the
+   seam anywhere the text realistically sits. */
+.hero-beat-inner {
+  max-width: 34vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+/* Oversized ghost chapter numeral, pause.co.in-style — sits behind the text
+   block, centered in the opposite half of the screen from the vignette so
+   it reads as a background watermark rather than competing with the copy. */
+.hero-beat-numeral {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(10rem, 20vw, 22rem);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--color-cool-white);
+  opacity: 0.06;
+  pointer-events: none;
+  user-select: none;
+  z-index: -1;
+}
+
+.hero-beat .section-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-crimson);
+}
+
+/* Same size/weight/spacing as .hero-headline — the beats are the same
+   headline treatment carrying different copy as you scroll, not a smaller
+   "secondary" style, so the theme reads as one continuous typographic
+   voice instead of downshifting the moment the hero content scrolls away. */
+.beat-heading {
+  text-transform: uppercase;
+  font-weight: 400;
+  font-size: clamp(2rem, 3.4vw, 3.75rem);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--color-cool-white);
+  margin: 0;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.85), 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+.beat-body {
+  font-size: clamp(0.9rem, 1.05vw, 1.05rem);
+  line-height: 1.6;
+  color: var(--color-cool-grey);
+  margin: 0;
+  max-width: 32ch;
+}
+
+@media (max-width: 768px) {
+  .hero-beat.align-left {
+    padding-left: 7vw;
+    padding-right: 7vw;
+    justify-content: flex-start;
+  }
+  .hero-beat::before {
+    width: 100vw;
+    left: 0;
+    right: 0;
+    background: linear-gradient(
+      to top,
+      rgba(10, 11, 11, 0.88) 0%,
+      rgba(10, 11, 11, 0.65) 45%,
+      rgba(10, 11, 11, 0.2) 80%,
+      rgba(10, 11, 11, 0) 100%
+    );
+  }
+  .hero-beat-inner {
+    max-width: 100%;
+  }
+}
+
+/* Main hero content (first viewport). Left-aligned on desktop so the
+   athlete (drawn anchored toward the right of the canvas — see
+   equipment-hero-section.tsx's anchorXRef) has clear room on the right
+   half; a left-side vignette (mirroring .hero-beat.align-left's) keeps the
+   text legible over whatever frame is painted underneath. Reverts to the
+   original centered layout on mobile, where the athlete is drawn centered
+   too — there's no spare width for a side-by-side split on a phone screen. */
+.hero-content {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+  padding: 0 6vw;
+  pointer-events: none;
+}
+
+/* Same reasoning as .hero-beat-inner: this content is vertically centered
+   (justify-content: center on a min-height: 100vh column), so it never
+   reaches the diagonal's narrowest point at the very bottom of the
+   viewport — sized to sit close to the seam without crossing it, not to
+   the worst case. The bug this replaced (a 34rem/20ch cap wider than the
+   36.9vw-wide box .hero-content sat in) let "Is You." overlap his torso. */
+.hero-content > * {
+  max-width: 38vw;
+}
+
+.hero-content::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 62vw;
+  background: linear-gradient(
+    to right,
+    rgba(10, 11, 11, 0.78) 0%,
+    rgba(10, 11, 11, 0.5) 45%,
+    rgba(10, 11, 11, 0.15) 80%,
+    rgba(10, 11, 11, 0) 100%
+  );
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .hero-content {
+    align-items: center;
+    text-align: center;
+    padding: 0 1.5rem;
+  }
+
+  .hero-content > * {
+    max-width: 100%;
+  }
+
+  .hero-content::before {
+    inset: -8% -6%;
+    width: auto;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(10, 11, 11, 0.6) 0%,
+      rgba(10, 11, 11, 0.25) 50%,
+      transparent 75%
+    );
+  }
+}
+
+.hero-headline {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: clamp(2.75rem, 5.6vw, 6.5rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  margin: 0;
+  color: var(--color-cool-white);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.85), 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+/* The one spot of color in the whole hero — every other word is plain
+   white, so "Limit" reads as the emphasized word instead of competing with
+   a separately-colored overline/tagline saying the same thing three times. */
+.hero-headline-accent {
+  color: var(--color-crimson);
+}
+
