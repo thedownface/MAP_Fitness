@@ -10,8 +10,9 @@
    .hero-content above is a single 100vh viewport; without this, the
    container's natural height is exactly one viewport, leaving zero scroll
    range for useScroll's ["start start", "end end"] progress to move
-   across, so all 240 frames would scrub within ~0px of scroll instead of
-   over a deliberate, readable distance.
+   across, so every frame would scrub within ~0px of scroll instead of over a
+   deliberate, readable distance. The frame counts are sized against this
+   number too — see the note on VARIANTS in scripts/encode-hero-frames.mjs.
    360vh (not 400vh) — the BEATS enter/leave fractions and blackoutOpacity
    range in equipment-hero-section.tsx are tuned against this number so beat
    3's fade-out and the blackout fade run back-to-back with no dead scroll
@@ -48,8 +49,14 @@
    reads the canvas's own rendered box via getBoundingClientRect, not
    window.innerWidth) so the drawing buffer — and therefore the cover-fit
    crop — actually matches this box instead of being stretched into it.
-   Mobile has no spare width for a side-by-side split, so the canvas stays
-   full-bleed and centered there (see ANCHOR_MOBILE), no clip-path. */
+   Mobile has no spare width for a side-by-side split, so it splits the
+   other way: the canvas stays full-bleed but is clipped along a diagonal
+   (see the media query further down), leaving the container's midnight
+   background exposed above it. Same idea as the desktop wedge, rotated a
+   quarter turn — black field for the copy, red field for the athlete. It
+   does not cover-fit either: it draws a pre-cropped portrait-friendly frame
+   contained to the width and fills the rest with that frame's own backdrop
+   red (see drawMobile). */
 @media (min-width: 769px) {
   .hero-canvas {
     left: 30vw;
@@ -58,6 +65,22 @@
        re-expressed as a fraction of this box's own 70vw width:
        (62-30)/70 and (35-30)/70. */
     clip-path: polygon(45.7% 0%, 100% 0%, 100% 100%, 7.14% 100%);
+  }
+}
+
+/* The mobile split. --hero-diagonal-left/right are set on .hero-container
+   from MOBILE_DIAGONAL_LEFT/RIGHT in equipment-hero-section.tsx and
+   inherited down to here, so the angle is defined once: the component needs
+   the same numbers to size the athlete clear of it (MOBILE_MAX_HEIGHT), and
+   two hand-kept copies would drift apart and start cutting him. */
+@media (max-width: 768px) {
+  .hero-canvas {
+    clip-path: polygon(
+      0% var(--hero-diagonal-left, 62%),
+      100% var(--hero-diagonal-right, 28%),
+      100% 100%,
+      0% 100%
+    );
   }
 }
 
@@ -173,26 +196,46 @@
   max-width: 32ch;
 }
 
+/* Mobile is the same composition rotated a quarter turn: desktop gives the
+   athlete a wedge on the right and the copy the column on the left, so a
+   phone gives him the red field below the diagonal and the copy the black
+   field above it. Text therefore anchors to the top, where the old rules
+   centered it and lit it from a bottom-up scrim.
+
+   No scrim here at all any more: above the diagonal the background is
+   already flat --color-midnight, so a dark gradient would be invisible over
+   the part it was meant to protect and would only wash out the red just
+   below the split, softening the one edge the whole composition is built
+   on. The copy is kept inside the black instead — which is what the
+   padding-top and the body's max-width below are for. The right-hand side
+   is the tight one: the diagonal rises to --hero-diagonal-right there, so
+   there is far less black to sit in than on the left. */
 @media (max-width: 768px) {
+  .hero-beat {
+    align-items: flex-start;
+  }
   .hero-beat.align-left {
     padding-left: 7vw;
     padding-right: 7vw;
+    padding-top: 11vh;
     justify-content: flex-start;
   }
   .hero-beat::before {
-    width: 100vw;
-    left: 0;
-    right: 0;
-    background: linear-gradient(
-      to top,
-      rgba(10, 11, 11, 0.88) 0%,
-      rgba(10, 11, 11, 0.65) 45%,
-      rgba(10, 11, 11, 0.2) 80%,
-      rgba(10, 11, 11, 0) 100%
-    );
+    content: none;
   }
   .hero-beat-inner {
     max-width: 100%;
+  }
+  /* The body is the lowest and widest line of a beat, so it is the part
+     that reaches the diagonal first. Holding it to the left two-thirds
+     keeps it clear of the right-hand side, where the split is highest. */
+  .beat-body {
+    max-width: 24ch;
+  }
+  /* Follows the copy upward, for the same reason: centered, it would sit
+     behind the athlete rather than behind the text it watermarks. */
+  .hero-beat-numeral {
+    top: 24%;
   }
 }
 
@@ -246,22 +289,22 @@
   .hero-content {
     align-items: center;
     text-align: center;
-    padding: 0 1.5rem;
+    justify-content: flex-start;
+    padding: 11vh 1.5rem 0;
   }
 
   .hero-content > * {
     max-width: 100%;
   }
 
+  /* Dropped on mobile along with the beats' scrim, and for the same reason:
+     the headline now sits on flat --color-midnight above the diagonal, so
+     there is nothing for a scrim to rescue. It matters most here — the
+     crimson "Limit" is the one word with almost no contrast against the red
+     plate, and keeping it in the black is what makes it readable rather
+     than dimming the plate underneath it. */
   .hero-content::before {
-    inset: -8% -6%;
-    width: auto;
-    background: radial-gradient(
-      ellipse at center,
-      rgba(10, 11, 11, 0.6) 0%,
-      rgba(10, 11, 11, 0.25) 50%,
-      transparent 75%
-    );
+    content: none;
   }
 }
 
