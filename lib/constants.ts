@@ -259,55 +259,75 @@ export const MEMBERSHIP_CTA = {
   subline: "Train with purpose. Move with confidence. Recover with intention.",
 } as const;
 
-export const GST_NOTE = "Prices are subject to 5% GST.";
+export const GST_NOTE = "All prices are exclusive of GST.";
 
-export const PERSONAL_TRAINING = {
-  subtitle: "15 CLASSES PER PROGRAM",
-  tiers: [
-    { name: "Beginner", price: 15000 },
-    { name: "Intermediary", price: 20000 },
-    { name: "Pro", price: 25000 },
-  ],
-} as const;
+/** What every membership carries, and what the wellness tiers add on top.
+ * The recovery list is derived from RECOVERY_FEATURES rather than retyped,
+ * so the floor's contents are stated in exactly one place — add a service
+ * there and every price card that includes it follows. */
+const MEMBERSHIP_BASE = ["Unlimited gym access", "Strength & conditioning floor"];
+const MEMBERSHIP_WITH_WELLNESS = [
+  ...MEMBERSHIP_BASE,
+  ...RECOVERY_FEATURES.map((feature) => feature.title),
+];
 
-export const FOUNDING_MEMBERSHIP = {
-  label: "PRE-LAUNCH OFFER",
-  individual: { price: 20000 },
-  couple: { price: 35000, note: "2 people" },
-  includes: [
-    "Ice Plunge",
-    "Red Light Therapy",
-    "Steam",
-    "2 PT Sessions with Pro Trainer",
-    "1 Free Trial Pilates Session",
-    "1 Health Camp",
-    "Unlimited Gym Access",
-    "Access to All Group Classes",
-    "M&P Merchandise",
-  ],
-} as const;
-
-export const STANDARD_MEMBERSHIP = {
-  label: "STANDARD MEMBERSHIP (POST LAUNCH)",
-  individual: { price: 23000 },
-  couple: { price: 40000 },
-} as const;
-
-export const WELLNESS_MEMBERSHIPS = [
-  { duration: "1 Month", price: 5500, sessions: 12 },
-  { duration: "3 Months", price: 10500, sessions: 24 },
-  { duration: "6 Months", price: 15500, sessions: 36 },
+/** The membership grid. Split by whether the recovery floor is included,
+ * not by when you joined: the individual and couple prices each come in a
+ * strength-and-conditioning tier and a tier that adds wellness. */
+export const MEMBERSHIPS = [
+  {
+    id: "individual",
+    name: "Individual",
+    note: "Strength & conditioning",
+    price: 20000,
+    features: MEMBERSHIP_BASE,
+  },
+  {
+    id: "individual-wellness",
+    name: "Individual + Wellness",
+    note: "Strength & conditioning, plus the recovery floor",
+    price: 25000,
+    features: MEMBERSHIP_WITH_WELLNESS,
+    highlight: true,
+  },
+  {
+    id: "couple",
+    name: "Couple",
+    note: "Two people · strength & conditioning",
+    price: 40000,
+    features: MEMBERSHIP_BASE,
+  },
+  {
+    id: "couple-wellness",
+    name: "Couple + Wellness",
+    note: "Two people, plus the recovery floor",
+    price: 50000,
+    features: MEMBERSHIP_WITH_WELLNESS,
+  },
 ] as const;
 
-export const WELLNESS_SESSION_PRICING = {
-  single: 349,
-  allFour: 1199,
+/** One-to-one coaching, sold as a block of sessions. The per-session rate
+ * the page shows beside each block is divided out of these two numbers
+ * rather than written down, so the two can never disagree. */
+export const PRIVATE_TRAINING = [
+  { sessions: 12, price: 15000 },
+  { sessions: 20, price: 20000 },
+] as const;
+
+/** Recovery for non-members, and for members on a strength-only tier:
+ * any one service, or the whole floor in a single visit. */
+export const RECOVERY_SESSION_PRICING = {
+  single: 500,
+  allAccess: 1799,
 } as const;
 
-export const HYVE_UPGRADE = [
-  { duration: "1 Month", price: 7999 },
-  { duration: "3 Months", price: 11999 },
-  { duration: "6 Months", price: 14999 },
+/** Drop-in rates, per class. */
+export const CLASS_PRICING = [
+  { name: "Boxing", price: 1000 },
+  { name: "HYROX", price: 1000 },
+  { name: "Calisthenics", price: 1000 },
+  { name: "Yoga", price: 1000 },
+  { name: "Pilates", price: 1500 },
 ] as const;
 
 export const NAV_LINKS = [
