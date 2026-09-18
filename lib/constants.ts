@@ -31,7 +31,19 @@ export const CONTACT = {
   ],
   instagram: "@map.blr",
   instagramUrl: "https://instagram.com/map.blr",
+  /** The number the site's WhatsApp button opens a chat with — the MAP
+   * office line, the same one listed first under `phones`. Digits only and
+   * country code included, which is the format wa.me requires: it rejects
+   * spaces, a leading +, and anything without a country code. */
+  whatsappNumber: "919740063730",
+  whatsappMessage: "Hi MAP, I'd like to know more about membership.",
 } as const;
+
+/** wa.me rather than api.whatsapp.com/send: it is the short link WhatsApp
+ * documents for exactly this, and it resolves to the native app on a phone
+ * and to WhatsApp Web on a desktop without the caller choosing. */
+export const whatsappUrl = () =>
+  `https://wa.me/${CONTACT.whatsappNumber}?text=${encodeURIComponent(CONTACT.whatsappMessage)}`;
 
 export const RECOVERY_INTRO =
   "Your membership now includes a significantly upgraded recovery floor — built to make rest as deliberate as training.";
