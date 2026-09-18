@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "hero:frames": "node scripts/encode-hero-frames.mjs"
+    "hero:frames": "node scripts/encode-hero-frames.mjs",
+    "hero:timeline": "node scripts/verify-hero-timeline.mjs",
+    "hero:diagonal": "node scripts/verify-hero-diagonal.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

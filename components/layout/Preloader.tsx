@@ -28,9 +28,16 @@ export function Preloader() {
     const container = containerRef.current;
     const fill = fillRef.current;
 
-    // Only the home page's WebGL hero needs to be waited on — everywhere
-    // else there's nothing to hold for, so behave exactly like before.
-    const hasHero = !!document.querySelector(".hero-canvas");
+    // Only the home page's hero needs to be waited on — everywhere else
+    // there's nothing to hold for, so behave exactly like before.
+    //
+    // Keyed on .hero-container, not on what is inside it: the hero renders
+    // as a scroll-scrubbed canvas on a laptop and a looping video on a
+    // phone, and it does not know which until matchMedia resolves after
+    // mount. The container is there either way, from the first paint, and
+    // both renderings dispatch "map:hero-ready" when their first image is
+    // on screen.
+    const hasHero = !!document.querySelector(".hero-container");
     let fillDone = false;
     let heroReady = !hasHero;
     let settled = false;
@@ -53,8 +60,8 @@ export function Preloader() {
     window.addEventListener("map:hero-ready", onHeroReady);
 
     // Never hold the loader past this even if the hero never signals ready
-    // (WebGL unsupported, a render error) — comfortably past a slow cold
-    // GPU init, short enough not to read as broken.
+    // (frames or video that fail to load, a decode error) — comfortably
+    // past a slow connection, short enough not to read as broken.
     const maxWait = window.setTimeout(() => {
       heroReady = true;
       finish();

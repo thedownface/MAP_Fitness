@@ -1,6 +1,33 @@
 {
-  "count": 240,
+  "count": 175,
   "width": 1280,
   "height": 720,
-  "groundY": 0.955
+  "groundY": 0.955,
+  "chapters": [
+    {
+      "key": "stance",
+      "frame": 0,
+      "at": 0
+    },
+    {
+      "key": "guard",
+      "frame": 81,
+      "at": 0.43933
+    },
+    {
+      "key": "drive",
+      "frame": 108,
+      "at": 0.58787
+    },
+    {
+      "key": "floor",
+      "frame": 148,
+      "at": 0.80544
+    },
+    {
+      "key": "recover",
+      "frame": 174,
+      "at": 0.99582
+    }
+  ]
 }

@@ -9,17 +9,27 @@
 /* Pure scroll distance for the frame-scrub — no content of its own.
    .hero-content above is a single 100vh viewport; without this, the
    container's natural height is exactly one viewport, leaving zero scroll
-   range for useScroll's ["start start", "end end"] progress to move
-   across, so every frame would scrub within ~0px of scroll instead of over a
-   deliberate, readable distance. The frame counts are sized against this
-   number too — see the note on VARIANTS in scripts/encode-hero-frames.mjs.
-   360vh (not 400vh) — the BEATS enter/leave fractions and blackoutOpacity
-   range in equipment-hero-section.tsx are tuned against this number so beat
-   3's fade-out and the blackout fade run back-to-back with no dead scroll
-   between "last beat gone" and "next section visible". Changing this without
-   rescaling those fractions reopens that gap. */
+   range for the progress the component measures off this container's rect,
+   so every frame would scrub within ~0px of scroll instead of over a
+   deliberate, readable distance.
+
+   This is now the container's whole height — .hero-content is fixed and
+   contributes none — and progress runs from the container's top meeting the
+   top of the viewport to its bottom meeting the bottom, so the scrollable
+   range is this minus one viewport: 520vh.
+
+   520vh of range, up from 360vh, because the hero now spends scroll
+   standing still: five chapters hold their pose for DWELL (0.10) of the
+   range each — half the hero — while their copy is read, leaving 0.43 for
+   the athlete to actually move through 175 frames. At the old 360vh those
+   holds would have been ~36vh each (barely a flick) and the travel between
+   them twice as fast as the old linear scrub. Everything downstream is a
+   *fraction* of the range and is laid out from the manifest at runtime (see
+   buildTimeline in equipment-hero-section.tsx), so this can be retuned on
+   its own — it changes how much scroll a beat costs, not which frame it
+   lands on. */
 .hero-scroll-spacer {
-  height: 360vh;
+  height: 620vh;
   pointer-events: none;
 }
 
@@ -40,7 +50,7 @@
 }
 
 /* Confines the athlete frame-sequence to a right-hand wedge on desktop —
-   text-side (.hero-content, the beats' align-left copy) reads over the
+   text-side (.hero-content and the beats' copy) reads over the
    plain --color-midnight backdrop this leaves exposed instead of a
    full-bleed image. The box itself (left/width) is a plain rectangle sized
    to comfortably contain the diagonal cut below; clip-path does the actual
@@ -68,20 +78,105 @@
   }
 }
 
-/* The mobile split. --hero-diagonal-left/right are set on .hero-container
-   from MOBILE_DIAGONAL_LEFT/RIGHT in equipment-hero-section.tsx and
-   inherited down to here, so the angle is defined once: the component needs
-   the same numbers to size the athlete clear of it (MOBILE_MAX_HEIGHT), and
-   two hand-kept copies would drift apart and start cutting him. */
-@media (max-width: 768px) {
-  .hero-canvas {
-    clip-path: polygon(
-      0% var(--hero-diagonal-left, 62%),
-      100% var(--hero-diagonal-right, 28%),
-      100% 100%,
-      0% 100%
-    );
+/* ---------------------------------------------------------------------------
+   Mobile: the same composition, played rather than scrubbed.
+
+   A phone gets HeroLoop instead of HeroScrub — public/videos/hero-loop.mp4
+   on a loop, with the copy cued off its clock. The layout below reproduces
+   in CSS exactly what the desktop canvas does in drawImage, because it is
+   the same footage and the same measured geometry; only the thing painting
+   it changed.
+
+   All five custom properties are set on .hero-container by the component,
+   derived from the mobile manifest's crop and from MOBILE_FEET_Y /
+   MOBILE_MAX_HEIGHT / MOBILE_DIAGONAL_* — so where the athlete is in frame
+   is defined once, by the pipeline that measured him, and both renderings
+   read it from there. Check it with `npm run hero:diagonal`.
+   --------------------------------------------------------------------------- */
+
+/* One viewport, and an ordinary one: no multi-viewport scroll container, so
+   scrolling past the hero on a phone is just scrolling.
+
+   .is-pending is the placeholder the component renders for the one frame
+   before matchMedia tells it which rendering to mount, and it is sized the
+   same way for the same reason — it has to reserve whatever height the real
+   hero is about to take. Above the breakpoint it falls back to `auto` and
+   lets its own .hero-scroll-spacer supply that, so the scrub's height is
+   still stated once. */
+.hero-container.is-loop,
+.hero-container.is-pending {
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+}
+
+@media (min-width: 769px) {
+  .hero-container.is-pending {
+    height: auto;
+    overflow: visible;
   }
+}
+
+/* The copy is pinned inside the hero rather than to the viewport — fixed
+   would keep it on screen after the hero has scrolled away, which is only
+   correct for the scrub, where the container is six viewports tall. */
+.hero-container.is-loop .hero-beat,
+.hero-container.is-loop .hero-content {
+  position: absolute;
+}
+
+/* The red field, clipped along the same diagonal the desktop canvas is, and
+   filled with the mean backdrop colour of the clip's own top and bottom
+   edges (the `plate` pair in the manifest). The fill only shows in the gap
+   between the diagonal and the band below it, and the plate is a flat
+   cyclorama, so a single gradient stands in for the per-frame sampling the
+   canvas renderer does. */
+.hero-loop-plate {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  clip-path: polygon(
+    0% var(--hero-diagonal-left, 62%),
+    100% var(--hero-diagonal-right, 28%),
+    100% 100%,
+    0% 100%
+  );
+  background: linear-gradient(
+    180deg,
+    var(--plate-top) 0,
+    var(--plate-top) var(--band-top),
+    var(--plate-bottom) calc(var(--band-top) + var(--band-h)),
+    var(--plate-bottom) 100%
+  );
+}
+
+/* The window the athlete occupies: the crop, sized off viewport width,
+   capped against viewport height so his head stays clear of the diagonal,
+   and positioned so his feet land on the same floor line at every viewport
+   rather than the band being centred. */
+.hero-loop-band {
+  position: absolute;
+  top: var(--band-top);
+  left: 50%;
+  width: var(--band-w);
+  height: var(--band-h);
+  transform: translateX(-50%);
+  overflow: hidden;
+}
+
+/* The clip is uncropped and therefore wider than the band: the overflow it
+   is clipped by *is* the crop. --video-dx re-centres it on the crop's own
+   centre rather than the frame's. */
+.hero-video {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--video-w);
+  height: 100%;
+  transform: translateX(calc(-50% + var(--video-dx)));
+  object-fit: cover;
+  pointer-events: none;
 }
 
 .hero-blackout {
@@ -96,36 +191,49 @@
   background: var(--color-midnight);
 }
 
-/* Royal Pop-style pinned text beats: fixed full-viewport, opacity-windowed
-   by scroll progress (see useBeatMotion), side-aligned with a directional
-   vignette behind the text so it stays legible over whatever frame is
-   currently painted underneath, regardless of that frame's own brightness. */
+/* Pinned text beats: fixed full-viewport, opacity-windowed by scroll
+   progress (see useBeatMotion), each one centred in the black half of the
+   split with a directional vignette behind it so it stays legible over
+   whatever frame is currently painted underneath.
+
+   No will-change: the component drives `visibility` off the same opacity
+   motion value, so only the beat actually on screen is composited at all.
+   Promoting all four full-viewport layers permanently cost more than the
+   one opacity animation it would have accelerated. */
 .hero-beat {
   position: fixed;
   inset: 0;
   z-index: 8;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   pointer-events: none;
-  will-change: opacity;
+  /* The black side of the desktop split, as a box. The canvas starts at
+     30vw and its clip-path puts the seam at 62vw across the top of the
+     viewport and 35vw across the bottom, so the seam at height y (0 = top,
+     1 = bottom) is at 62 - 27y vw.
+
+     This column ends at 42vw, which the seam clears down to y = 0.74
+     ((62 - 42) / 27). The copy is vertically centred, so a block would have
+     to be 48% of the viewport tall before its last line reached that —
+     roughly twice what a label, a two-line heading and two lines of body
+     actually occupy. Widening this column eats that margin fast: every
+     extra 1vw costs 3.7 percentage points of safe height. */
+  padding-left: 4vw;
+  padding-right: 58vw;
 }
 
+/* Directional vignette under the copy, so it stays legible whatever the
+   frame behind it is doing. */
 .hero-beat::before {
   content: "";
   position: absolute;
   top: 0;
   bottom: 0;
+  left: 0;
   width: 58vw;
   pointer-events: none;
   z-index: -1;
-}
-
-.hero-beat.align-left {
-  padding-left: 6vw;
-  padding-right: 68vw;
-}
-.hero-beat.align-left::before {
-  left: 0;
   background: linear-gradient(
     to right,
     rgba(10, 11, 11, 0.85) 0%,
@@ -135,26 +243,27 @@
   );
 }
 
-/* Sized to sit close to the diagonal without crossing it: this beat's copy
-   is vertically centered (.hero-beat's align-items: center), so it never
-   actually reaches the viewport's bottom 20% or so, where the diagonal is
-   at its narrowest (35vw — see .hero-canvas's clip-path). 30vw (+ the 6vw
-   left padding above) lands the column's right edge at 36vw, clear of the
-   seam anywhere the text realistically sits. */
+/* Centred inside that column rather than flush to its left edge, so the
+   copy sits in the middle of the black field instead of hugging the screen
+   edge with the whole wedge empty beside it. Full width of the column: the
+   column itself is what keeps it clear of the diagonal. */
 .hero-beat-inner {
-  max-width: 34vw;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 0.9rem;
 }
 
-/* Oversized ghost chapter numeral, pause.co.in-style — sits behind the text
-   block, centered in the opposite half of the screen from the vignette so
-   it reads as a background watermark rather than competing with the copy. */
+/* Oversized ghost chapter numeral — sits directly behind the copy it
+   belongs to, so it reads as a watermark on that beat rather than as a
+   separate element floating in the middle of the screen. Centred on the
+   same 23vw the text column is centred on. */
 .hero-beat-numeral {
   position: absolute;
   top: 50%;
-  left: 50%;
+  left: 23vw;
   transform: translate(-50%, -50%);
   font-size: clamp(10rem, 20vw, 22rem);
   font-weight: 400;
@@ -173,10 +282,11 @@
   color: var(--color-crimson);
 }
 
-/* Same size/weight/spacing as .hero-headline — the beats are the same
-   headline treatment carrying different copy as you scroll, not a smaller
-   "secondary" style, so the theme reads as one continuous typographic
-   voice instead of downshifting the moment the hero content scrolls away. */
+/* One size for every beat, and the same size/weight/spacing as
+   .hero-headline: the beats are that headline treatment carrying different
+   copy as you scroll, not a smaller "secondary" style. Nothing here varies
+   per beat — a chapter that set its own size would make the sequence read
+   as five unrelated slides instead of one headline changing its mind. */
 .beat-heading {
   text-transform: uppercase;
   font-weight: 400;
@@ -214,65 +324,72 @@
   .hero-beat {
     align-items: flex-start;
   }
-  .hero-beat.align-left {
+  .hero-beat {
     padding-left: 7vw;
     padding-right: 7vw;
     padding-top: 11vh;
-    justify-content: flex-start;
   }
   .hero-beat::before {
     content: none;
   }
-  .hero-beat-inner {
-    max-width: 100%;
-  }
   /* The body is the lowest and widest line of a beat, so it is the part
-     that reaches the diagonal first. Holding it to the left two-thirds
-     keeps it clear of the right-hand side, where the split is highest. */
+     that reaches the diagonal first. Holding it to ~24 characters keeps it
+     clear of the right-hand side, where the split is highest. */
   .beat-body {
     max-width: 24ch;
   }
-  /* Follows the copy upward, for the same reason: centered, it would sit
-     behind the athlete rather than behind the text it watermarks. */
+  /* Follows the copy upward and back to the centre of the screen: the
+     portrait split puts the black across the whole top, so there is no
+     left-hand column to sit in. */
   .hero-beat-numeral {
     top: 24%;
+    left: 50%;
   }
 }
 
 /* Main hero content (first viewport). Left-aligned on desktop so the
    athlete (drawn anchored toward the right of the canvas — see
    equipment-hero-section.tsx's anchorXRef) has clear room on the right
-   half; a left-side vignette (mirroring .hero-beat.align-left's) keeps the
+   half; a left-side vignette (mirroring .hero-beat's) keeps the
    text legible over whatever frame is painted underneath. Reverts to the
    original centered layout on mobile, where the athlete is drawn centered
    too — there's no spare width for a side-by-side split on a phone screen. */
+/* The opening chapter, and structurally just another beat: fixed, in the
+   same column as the four that follow it, crossfading on the same timeline
+   (see the `stance` segment in equipment-hero-section.tsx).
+
+   It used to be an in-flow 100vh block that simply scrolled away, which is
+   why the h1 could be caught halfway off the top of the screen with the
+   navbar's logo sitting across it — a state no other chapter could ever get
+   into, because the others were pinned. Pinning this one too means the hero
+   only ever shows a chapter fully arrived or fully leaving. */
 .hero-content {
-  position: relative;
+  position: fixed;
+  inset: 0;
   z-index: 10;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  text-align: left;
-  padding: 0 6vw;
+  text-align: center;
+  /* Same column as .hero-beat, for the same reasons — see the note there. */
+  padding: 0 58vw 0 4vw;
   pointer-events: none;
 }
 
-/* Same reasoning as .hero-beat-inner: this content is vertically centered
-   (justify-content: center on a min-height: 100vh column), so it never
-   reaches the diagonal's narrowest point at the very bottom of the
-   viewport — sized to sit close to the seam without crossing it, not to
-   the worst case. The bug this replaced (a 34rem/20ch cap wider than the
-   36.9vw-wide box .hero-content sat in) let "Is You." overlap his torso. */
+/* The column already holds the copy clear of the diagonal, so nothing here
+   needs its own cap. (The bug this replaced was a 34rem/20ch cap wider than
+   the box .hero-content sat in, which let "Is You." overlap his torso.) */
 .hero-content > * {
-  max-width: 38vw;
+  max-width: 100%;
 }
 
 .hero-content::before {
   content: "";
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
   z-index: -1;
   width: 62vw;
   background: linear-gradient(
@@ -287,14 +404,8 @@
 
 @media (max-width: 768px) {
   .hero-content {
-    align-items: center;
-    text-align: center;
     justify-content: flex-start;
     padding: 11vh 1.5rem 0;
-  }
-
-  .hero-content > * {
-    max-width: 100%;
   }
 
   /* Dropped on mobile along with the beats' scrim, and for the same reason:

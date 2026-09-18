@@ -1,28 +1,39 @@
 /**
- * Checks the one invariant holding the mobile hero together: on every
- * published mobile frame, at every viewport, the athlete's silhouette stays
- * below the diagonal that clips the canvas.
+ * Checks the one invariant holding the mobile hero together: at every
+ * moment of the clip, at every viewport, the athlete's silhouette stays
+ * below the diagonal that clips the red plate.
  *
  * If it does not, the clip slices a hard line across his body — and because
  * the region above the split is the same near-black as the silhouette, the
  * only part you actually see go missing is the rim light on his shoulders
  * and arms, which is easy to miss in a single screenshot and obvious once
- * the page is scrolling.
+ * the page is moving.
  *
- * Four separate numbers decide this — the crop in encode-hero-frames.mjs,
- * and MOBILE_DIAGONAL_LEFT/RIGHT, MOBILE_FEET_Y and MOBILE_MAX_HEIGHT in
+ * Measured on the *desktop* frames, with the mobile crop applied here in
+ * software. Mobile no longer draws frames at all — it plays
+ * public/videos/hero-loop.mp4 — so there is no published mobile sequence to
+ * measure, and the video cannot be decoded from Node without pulling in
+ * ffmpeg. The desktop set is the same footage at full frame, deduplicated
+ * from the same masters, so cropping it here reproduces exactly what the
+ * band shows, at 175 samples instead of 89. The crop itself is read from
+ * the mobile manifest, where the encoder published it for the stylesheet.
+ *
+ * Four separate numbers decide this — that crop, and MOBILE_DIAGONAL_LEFT /
+ * MOBILE_DIAGONAL_RIGHT / MOBILE_FEET_Y / MOBILE_MAX_HEIGHT in
  * equipment-hero-section.tsx — so run this after touching any of them.
- * Constants are read from the component rather than duplicated here.
+ * Nothing is duplicated here: the constants are read from the component and
+ * the geometry from the manifest.
  *
- * Usage:  node scripts/verify-hero-diagonal.mjs
+ * Usage:  node scripts/verify-hero-diagonal.mjs   (npm run hero:diagonal)
  */
 import { readFile } from "node:fs/promises";
 
 const sharp = (await import("sharp")).default;
 
 const COMPONENT = "components/ui/equipment-hero-section.tsx";
-const MANIFEST = "public/hero/mobile/manifest.json";
-const FRAME_DIR = "public/hero/mobile";
+const MOBILE_MANIFEST = "public/hero/mobile/manifest.json";
+const FRAME_MANIFEST = "public/hero/desktop/manifest.json";
+const FRAME_DIR = "public/hero/desktop";
 
 /** Columns sampled per frame. The silhouette edge is smooth at this scale,
  * so more columns find the same worst case a lot more slowly. */
@@ -59,14 +70,17 @@ const L = constant(src, "MOBILE_DIAGONAL_LEFT");
 const R = constant(src, "MOBILE_DIAGONAL_RIGHT");
 const FEET = constant(src, "MOBILE_FEET_Y");
 const MAX_H = constant(src, "MOBILE_MAX_HEIGHT");
-const manifest = JSON.parse(await readFile(MANIFEST, "utf8"));
+const mobile = JSON.parse(await readFile(MOBILE_MANIFEST, "utf8"));
+const frames = JSON.parse(await readFile(FRAME_MANIFEST, "utf8"));
+const CROP = mobile.crop;
 
 /** Topmost silhouette row per column, as a fraction of frame height (1 = no
  * silhouette in that column). */
 async function skyline(index) {
   const file = `${FRAME_DIR}/${String(index).padStart(4, "0")}.webp`;
-  const rows = Math.round((COLUMNS * manifest.height) / manifest.width);
+  const rows = Math.round((COLUMNS * CROP.height) / CROP.width);
   const { data, info } = await sharp(file)
+    .extract(CROP)
     .resize(COLUMNS, rows)
     .removeAlpha()
     .raw()
@@ -85,16 +99,17 @@ async function skyline(index) {
 }
 
 const skylines = [];
-for (let j = 0; j < manifest.count; j++) skylines.push(await skyline(j));
+for (let j = 0; j < frames.count; j++) skylines.push(await skyline(j));
 
-/** Mirrors drawMobile exactly; returns the smallest gap between any
+/** Mirrors the band geometry in equipment-hero-section.css (--band-h,
+ * --band-w, --band-top) exactly; returns the smallest gap between any
  * silhouette pixel and the diagonal, in CSS pixels. */
 function worstGap(cw, ch) {
-  const scale = Math.min(cw / manifest.width, (ch * MAX_H) / manifest.height);
-  const dw = manifest.width * scale;
-  const dh = manifest.height * scale;
+  const scale = Math.min(cw / CROP.width, (ch * MAX_H) / CROP.height);
+  const dw = CROP.width * scale;
+  const dh = CROP.height * scale;
   const dx = (cw - dw) / 2;
-  const dy = ch * FEET - dh * manifest.groundY;
+  const dy = ch * FEET - dh * mobile.groundY;
 
   let gap = Infinity;
   let where = null;
@@ -118,7 +133,10 @@ console.log(
   `diagonal ${(L * 100).toFixed(0)}% -> ${(R * 100).toFixed(0)}% of viewport height, ` +
     `feet at ${(FEET * 100).toFixed(0)}%, band capped at ${(MAX_H * 100).toFixed(1)}% of height`,
 );
-console.log(`${manifest.count} frames at ${manifest.width}x${manifest.height}\n`);
+console.log(
+  `${frames.count} frames of ${FRAME_DIR}, cropped to ` +
+    `${CROP.width}x${CROP.height} at x=${CROP.left} (the window the video is played through)\n`,
+);
 
 let failed = false;
 for (const [cw, ch, name] of VIEWPORTS) {
@@ -135,10 +153,10 @@ for (const [cw, ch, name] of VIEWPORTS) {
 
 if (failed) {
   console.error(
-    `\nFAILED: the clip cuts the athlete, or comes within ${MIN_CLEARANCE_PX}px of it.\n` +
+    `\nFAILED: the diagonal cuts the athlete, or comes within ${MIN_CLEARANCE_PX}px of it.\n` +
       `Lower MOBILE_MAX_HEIGHT, or move the diagonal down (raise ` +
       `MOBILE_DIAGONAL_LEFT/RIGHT), in ${COMPONENT}.`,
   );
   process.exit(1);
 }
-console.log("\nOK: the athlete clears the diagonal on every frame at every viewport.");
+console.log("\nOK: the athlete clears the diagonal at every moment of the clip, at every viewport.");
