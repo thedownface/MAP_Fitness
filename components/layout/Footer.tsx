@@ -92,7 +92,20 @@ export function Footer() {
       </div>
 
       <div className="border-t border-cool-grey/10">
-        <div className="mx-auto flex max-w-7xl flex-col-reverse items-center gap-6 px-6 py-6 sm:flex-row sm:justify-between sm:px-10">
+        {/* Both extra paddings here keep this row out from under the
+            WhatsAppFab, which is fixed to the bottom-right corner of every
+            page and would otherwise sit on top of it at the end of a scroll.
+
+            pb-24 covers small screens, where the row stacks and centres and
+            the copyright line ends up as the bottom-most thing on the page —
+            the fab occupies the lowest 80px there (24px inset + 56px tall),
+            so this clears it. sm:max-[1399px]:pr-28 covers the middle, where
+            the row has gone horizontal and still reaches the right edge, so
+            "Back to top" lands under the button instead; the fab needs 88px
+            (32px inset + 56px wide) and this leaves 112px. Past 1400px
+            max-w-7xl has stopped growing, so the container no longer reaches
+            the corner and neither padding is needed. */}
+        <div className="mx-auto flex max-w-7xl flex-col-reverse items-center gap-6 px-6 py-6 pb-24 sm:flex-row sm:justify-between sm:px-10 sm:pb-6 sm:max-[1399px]:pr-28">
           <p className="text-xs text-cool-grey/60">
             © {new Date().getFullYear()} {BRAND.name} — {BRAND.fullName}. All rights reserved.
           </p>
