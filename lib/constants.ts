@@ -26,7 +26,7 @@ export const CONTACT = {
   mapQuery: "MAP Fitness Club HRBR Layout Kalyan Nagar Bengaluru",
   phones: [
     { label: "MAP Office", number: "+91 97400 63730" },
-    { label: "Preran", number: "+91 96834 03069" },
+    { label: "Preran", number: "+91 96634 05069" },
     { label: "Monish", number: "+91 99014 95555" },
   ],
   instagram: "@map.blr",
