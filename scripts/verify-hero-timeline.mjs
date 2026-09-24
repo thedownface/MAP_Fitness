@@ -17,7 +17,7 @@
  *     the opening hold doesn't spend scroll on a frozen screen; the last
  *     hold hands over to the blackout with no dead scroll.
  *
- *   mobile — the cycle is one video pass per beat, so the windows tile it
+ *   mobile — the cycle is LOOP_PASSES_PER_CYCLE video passes, so the windows tile it
  *     with no gap and every beat gets a full pass to be read. The pose each
  *     beat names comes round inside its own pass, which is the weaker
  *     guarantee that replaced frame-locked cueing when the clip was sped up
@@ -64,6 +64,7 @@ const OUTRO = constant(src, "OUTRO");
 const INTRO_DWELL = constant(src, "INTRO_DWELL");
 const LOOP_RATE = constant(src, "LOOP_RATE");
 const LOOP_FADE = constant(src, "LOOP_FADE");
+const LOOP_PASSES_PER_CYCLE = constant(src, "LOOP_PASSES_PER_CYCLE");
 const dwellFor = (i) => (i === 0 ? INTRO_DWELL : DWELL);
 
 const css = await readFile(STYLESHEET, "utf8");
@@ -213,11 +214,12 @@ const mobile = JSON.parse(await readFile("public/hero/mobile/manifest.json", "ut
 const windows = buildLoopWindows(mobile.chapters);
 const clip = await clipSeconds(VIDEO);
 const pass = clip / LOOP_RATE;
-const cycle = pass * mobile.chapters.length;
+const cycle = pass * LOOP_PASSES_PER_CYCLE;
 
 console.log(
   `\nmobile — video loop: ${clip.toFixed(2)}s clip at ${LOOP_RATE}x = ${pass.toFixed(1)}s per pass, ` +
-    `one beat per pass = ${cycle.toFixed(1)}s per cycle\n`,
+    `${LOOP_PASSES_PER_CYCLE} passes per cycle = ${cycle.toFixed(1)}s for all ` +
+    `${mobile.chapters.length} beats\n`,
 );
 console.log("  chapter    window (cycle)       on screen   its pose lands");
 
@@ -226,7 +228,7 @@ windows.forEach((w, i) => {
   console.log(
     `  ${w.key.padEnd(9)} ${w.from.toFixed(3)} - ${w.to.toFixed(3)}   ` +
       `${seconds.toFixed(1).padStart(5)}s     ` +
-      `${(w.at * pass).toFixed(1)}s into its pass`,
+      `${(w.at * pass).toFixed(1)}s into the pass it opens on`,
   );
 
   const next = windows[i + 1];
@@ -238,7 +240,7 @@ windows.forEach((w, i) => {
   check(
     seconds >= MIN_BEAT_SECONDS,
     `mobile: ${w.key} is on screen for ${seconds.toFixed(1)}s (min ${MIN_BEAT_SECONDS}s) — ` +
-      `lower LOOP_RATE to stretch each pass`,
+      `raise LOOP_PASSES_PER_CYCLE, or lower LOOP_RATE to stretch each pass`,
   );
   check(
     seconds <= pass * MAX_BEAT_PASSES,
@@ -251,10 +253,13 @@ check(
   Math.abs(windows[0].from) < 1e-9 && Math.abs(windows[windows.length - 1].to - 1) < 1e-9,
   "mobile: the windows do not cover the whole cycle",
 );
+// Fades are sequenced, not crossfaded: a beat spends LOOP_FADE * 2 fading
+// in and the same again fading out, all of it inside its own window, so
+// four fade-widths of every window are less than fully legible.
 check(
-  LOOP_FADE * cycle < MIN_BEAT_SECONDS / 4,
-  `mobile: the crossfade is ${(LOOP_FADE * cycle).toFixed(2)}s, long enough to eat into the ` +
-    `time each beat is legible for`,
+  LOOP_FADE * 4 * cycle < MIN_BEAT_SECONDS / 2,
+  `mobile: fading in and out costs ${(LOOP_FADE * 4 * cycle).toFixed(2)}s of every beat's ` +
+    `window, long enough to eat into the time each one is legible for`,
 );
 check(
   desktop.chapters.map((c) => c.key).join() === mobile.chapters.map((c) => c.key).join(),

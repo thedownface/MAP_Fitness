@@ -269,7 +269,21 @@ function chapterAtProgress(segments: Segment[], p: number) {
  * one deliberate chapter change instead of two unrelated jumps, and it is
  * the reason the phase below is counted off the video rather than a timer. */
 const LOOP_RATE = 1.25;
-/** Crossfade half-width, as a share of the whole five-pass cycle. */
+
+/** How many passes of the clip one full trip through the copy takes.
+ *
+ * This was chapters.length — one beat per pass — which bought the property
+ * described above (every copy change landing exactly on the footage's cut)
+ * at 6.4s per beat and 32s to read all five. That is longer than anyone
+ * looks at a hero, so most visitors only ever saw the first two. Three
+ * passes puts a beat at about 3.8s and the whole set at 19s, which is the
+ * trade the other way: only the change at the top of the cycle still lands
+ * on a cut, the rest float against the footage. The clip itself still plays
+ * at its own rate — this paces the copy, not the video. */
+const LOOP_PASSES_PER_CYCLE = 3;
+
+/** Fade width, as a share of the whole cycle. Each beat's fade in and fade
+ * out is this long, and they are sequenced rather than overlapped. */
 const LOOP_FADE = 0.01;
 
 type LoopWindow = { from: number; to: number };
@@ -708,15 +722,20 @@ function HeroScrub({ reducedMotion }: { reducedMotion: boolean }) {
  * scrollbar. */
 function useLoopBeat(phase: MotionValue<number>, window: LoopWindow, reducedMotion: boolean) {
   const f = LOOP_FADE;
-  // The first window starts at the cycle's own origin, so it has nothing
-  // before it to fade across — it rises from zero as the cycle restarts.
-  // That leaves a fraction of a second at the wrap with the copy at its
-  // dimmest, which is deliberate: it lands on the frame where the footage
-  // cuts, so the two read as one change rather than as a gap.
-  const inFrom = window.from === 0 ? 0 : window.from - f;
-  const inTo = window.from === 0 ? f * 2 : window.from + f;
-  const opacity = useTransform(phase, [inFrom, inTo, window.to - f, window.to + f], [0, 1, 1, 0]);
-  const rawY = useTransform(phase, [inFrom, inTo], [26, 0]);
+  // Sequenced, not crossfaded: the outgoing beat is fully gone by the
+  // boundary and the incoming one starts there. Every beat renders in the
+  // same fixed, full-viewport slot with the same type at the same size, so
+  // fades that overlap do not dissolve one line into the next — they print
+  // two headlines on top of each other. Centring both fades on the boundary
+  // is what the previous version did, and it left the two superimposed at
+  // roughly 0.6/0.4 for about a second at every change.
+  //
+  // The cost is a beat of empty copy at each handoff. That is the right way
+  // round here: a blank moment reads as a cut, a doubled one reads as a bug.
+  const inTo = window.from + f * 2;
+  const outFrom = window.to - f * 2;
+  const opacity = useTransform(phase, [window.from, inTo, outFrom, window.to], [0, 1, 1, 0]);
+  const rawY = useTransform(phase, [window.from, inTo], [26, 0]);
   const y = useTransform(rawY, (v) => (reducedMotion ? 0 : v));
   const visibility = useTransform(opacity, (v) => (v <= 0.001 ? "hidden" : "visible"));
   return { opacity, y, visibility };
@@ -743,7 +762,7 @@ function HeroLoop({ reducedMotion }: { reducedMotion: boolean }) {
   // The h1 holds the loop's first window and leaves the way the beats do.
   const introOpacity = useTransform(
     phase,
-    [windows[0].to - LOOP_FADE, windows[0].to + LOOP_FADE],
+    [windows[0].to - LOOP_FADE * 2, windows[0].to],
     [1, 0],
   );
   const introVisibility = useTransform(introOpacity, (v) => (v <= 0.001 ? "hidden" : "visible"));
@@ -802,7 +821,7 @@ function HeroLoop({ reducedMotion }: { reducedMotion: boolean }) {
      * Power Mode, a backgrounded tab, reduced motion holding the poster) so
      * the copy still cycles over the poster rather than stranding whichever
      * beat happened to be up. */
-    const passes = MOBILE.chapters.length;
+    const passes = LOOP_PASSES_PER_CYCLE;
     const started = performance.now();
     const cycleMs = ((video.duration || 8) * 1000 * passes) / (reducedMotion ? 1 : LOOP_RATE);
     let pass = 0;
